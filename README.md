@@ -1,139 +1,134 @@
-# RAG-Challenge
+# RAG-PDF (Gemini)
 
 ## Overview
-This project implements a Retrieval-Augmented Generation (RAG) chatbot system that enhances Large Language Model responses with relevant context from a knowledge base. The system retrieves information from documents, embeds them, and uses semantic search to supplement the LLM's generation capabilities.
+This project implements a **Retrieval-Augmented Generation (RAG)** system that allows you to chat with PDF or TXT documents.  
+Files are processed, split into chunks, converted into embeddings, and stored in **Qdrant**. During the conversation, the system retrieves the most relevant passages and sends them as context to **Gemini 2.5 Pro**, which replies in the same language as the question.
 
-*[Here](https://drive.google.com/file/d/13xGKKqc2F--Zem-1_6S6w_DUNjc6VMFm/view?usp=sharing) is a link to see the video demo!* 
-
-
-![RAG System Architecture Diagram - Add visualization of your RAG system here](readme/ui-image.png)
+![RAG System Architecture Diagram](readme/ui-image.png) <!-- you can create/add an image here -->
 
 ## Features
-- Document ingestion and preprocessing pipeline
-- Vector embedding storage and retrieval
-- Semantic similarity search
-- Context-aware prompt engineering
+- Document upload and processing (PDF/TXT)
+- Text extraction with PyMuPDF
+- Chunking (~800 tokens, 10% overlap)
+- Embeddings with Gemini
+- Vector storage in Qdrant
+- Retrieval by similarity + MMR
+- **Streaming** responses in the UI
+- Citations with page and source snippet
+- Interactive UI built with **Streamlit**
 
 ## Requirements
-- Python 3.11.13
-- Docker (for containerized deployment)
-- Miniconda (for virtual enviroment)
-
+- Python 3.12
+- Docker + Docker Compose
 
 ## Dependencies
 Main packages:
-- `fastapi==0.116.1` - API server framework
-- `uvicorn==0.35.0` - ASGI server for FastAPI
-- `python-multipart==0.0.20` - Multipart form data parsing
-- `pymupdf==1.26.4` - PDF document processing
-- `faiss-cpu==1.12.0` - Vector storage and similarity search
-- `sentence-transformers==5.1.0` - Text embedding models
-- `requests==2.32.5` - HTTP client for API calls
-- `streamlit==1.49.0` - Web interface
-- `qdrant-client==1.15.1` - Vector database client
-- `tiktoken==0.11.0` - Tokenizer for text processing
-- `nltk==3.9.1` - Natural Language Toolkit
-- `python-dotenv==1.1.1` - Environment variable management
-
-
+- `fastapi` – API server
+- `uvicorn` – ASGI server
+- `pydantic-settings` – Config via `.env`
+- `google-genai` – Gemini client
+- `qdrant-client` – Vector DB client
+- `pymupdf` – PDF parsing
+- `numpy` – Similarity + MMR
+- `sse-starlette` – SSE streaming in FastAPI
+- `streamlit` – Web UI
+- `sseclient-py` – SSE consumption in the client
 
 ## Docker Deployment
 
 1. Clone the repository
     ```bash
-    git clone https://github.com/Bernardo-Zamin/RAG-Challenge
-    cd RAG-Challenge
+    git clone https://github.com/your-username/rag-pdf-gemini.git
+    cd rag-pdf-gemini
     ```
 
-2. Start the Docker containers
+2. Set up environment variables  
+   Create a `.env` file in the project root:
+   ```env
+   GEMINI_API_KEY=your_key
+   GEMINI_MODEL=gemini-2.5-pro
+   EMBEDDING_MODEL=gemini-embedding-001
+   EMBEDDING_DIM=768
+   QDRANT_URL=http://qdrant:6333
+   QDRANT_COLLECTION=docs
+   MAX_FILE_MB=15
+   LOG_LEVEL=INFO
+   ```
+
+3. Start the containers
     ```bash
-    docker compose down --remove-orphans -v
+    docker compose down -v --remove-orphans
     docker compose up --build
     ```
 
-4. Access the services
-    - Web UI: http://localhost:8501
-    - Vector DataBase Dashboard: http://localhost:6333/dashboard
-    - API: http://localhost:8000/docs
+4. Access the services:
+    - **Web UI (Streamlit):** http://localhost:8501  
+    - **API (FastAPI docs):** http://localhost:8000/docs  
+    - **Qdrant Dashboard:** http://localhost:6333/dashboard  
 
- 
+## Services
+The `docker-compose.yml` launches three services:
+- **API server:** FastAPI backend for document processing and queries
+- **Web UI:** Streamlit interface for chatting with PDFs
+- **Vector Database:** Qdrant for storing embeddings
 
-The docker-compose.yml file sets up multiple containers:
-- API server: FastAPI backend for document processing and queries
-- Web UI: Streamlit interface for interacting with the RAG system
-- Vector Database: Qdrant for storing and retrieving document embeddings
-- Ollama: Local LLM server
+## API Endpoints
 
-#### *I recommend using Docker Desktop for easier visualization, launching, and stopping of containers during development*
-![Docker Desktop running the RAG application - Add screenshot here](readme/dockerdesktop-image.png)
+1. **Start Chat**
+   - `POST /v1/start_chat`
+   - Creates a new chat session
+   - Returns a `session_id`
 
+2. **Upload Documents**
+   - `POST /v1/documents`
+   - Upload and index PDFs/TXT for a session
+   - Requires `session_id` and files
+   - Returns indexing statistics
 
-### API Endpoints
-The application exposes the following endpoints:
+3. **Ask Question**
+   - `POST /v1/ask`
+   - Ask a question with a full response
+   - Requires `session_id` and `question`
 
-1. **Start Chat Endpoint**
-   - `POST /start_chat`
-   - Create a new chat session
-   - Returns a unique session_id for document uploads and questions
+4. **Ask Question (Streaming)**
+   - `POST /v1/ask/stream`
+   - Returns SSE streaming response
+   - Includes citations (page/snippet)
 
-2. **Document Upload Endpoint**
-   - `POST /documents`
-   - Upload PDF documents to be processed and indexed for a specific session
-   - Requires session_id and PDF files
-   - Returns upload statistics (documents indexed, total chunks, indexed points)
+### Endpoint Details
 
-3. **Question Endpoint**
-   - `POST /question`
-   - Send questions to the RAG system and receive augmented responses
-   - Requires question text and session_id
-   - Returns AI-generated answer with relevant document references
-
-
-#### Endpoint Details
-
-| Endpoint | Method | Content-Type | Request Body/Parameters |
-|----------|--------|--------------|-------------------------|
-| `/start_chat` | POST | - | None |
-| `/documents` | POST | multipart/form-data | `session_id` (form field), `files` (PDF files) |
-| `/question` | POST | application/json | `{"question": "string", "session_id": "string"}` |
+| Endpoint          | Method | Content-Type       | Body/Params |
+|-------------------|--------|--------------------|-------------|
+| `/v1/start_chat`  | POST   | -                  | None        |
+| `/v1/documents`   | POST   | multipart/form-data| `session_id`, `files` |
+| `/v1/ask`         | POST   | application/json   | `{"question": "text", "session_id": "uuid"}` |
+| `/v1/ask/stream`  | POST   | application/json   | `{"question": "text", "session_id": "uuid"}` |
 
 ## Project Structure
 ```
-RAG-Challenge/
-├── Dockerfile             # API container definition
-├── Dockerfile.ollama      # Ollama container definition
-├── RAG-Challenge/
-│   ├── data/
-│   │   └── uploaded_pdfs/ # Uploaded PDF storage
-│   │       └── BernardoZamin_CV.pdf
-│   ├── src/
-│   │   ├── api_routes/
-│   │   │   └── api_routes.py
-│   │   ├── main.py        # FastAPI application entry
-│   │   ├── models/
-│   │   │   └── models.py  # Pydantic models
-│   │   ├── services/      # Core business logic
-│   │   │   ├── embeddings.py
-│   │   │   ├── ollama_client.py
-│   │   │   ├── pdf_parser.py
-│   │   │   └── rag_pipeline.py
-│   │   └── vector_database/
-│   │       └── qdrant_store.py
-│   └── streamlit_app/     # Web UI components
-│       ├── ui.py
-│       └── utils.py
-├── README.md              # This file
-├── case_files/            # Sample input PDF documents
-│   ├── LB5001.pdf
-│   ├── MN414_0224.pdf
-│   ├── WEG-CESTARI-manual-iom-guia-consulta-rapida-50111652-pt-en-es-web.pdf
-│   └── WEG-motores-eletricos-guia-de-especificacao-50032749-brochure-portuguese-web.pdf
-├── docker-compose.yml     # Container orchestration
-├── readme/                # Documentation assets
-│   ├── dockerdesktop-image.png
-│   └── ui-image.png
-└── requirements.txt       # Python dependencies
+RAG-PDF-Gemini/
+├── docker/
+│   ├── Dockerfile.api       # API container definition
+│   └── Dockerfile.ui        # UI container definition
+├── src/
+│   ├── adapters/            # External adapters (Gemini client)
+│   ├── api_routes/          # FastAPI routes
+│   ├── core/                # Core config and utils
+│   ├── models/              # Pydantic DTOs
+│   ├── services/            # Core logic: parser, chunker, embeddings, retriever, RAG
+│   ├── utils/               # Helpers
+│   └── main.py              # FastAPI entrypoint
+├── ui/
+│   ├── app.py               # Streamlit interface
+│   └── requirements.txt     # UI dependencies
+├── docker-compose.yml       # Service orchestration
+├── requirements.txt         # API dependencies
+├── .env.example             # Env example
+├── README.md                # This file
+└── LICENSE
 ```
 
 ## Additional Resources
-- For additional models to test with this RAG chatbot, visit [Ollama Model Library](https://ollama.com/search)
+- [Qdrant Docs](https://qdrant.tech/documentation/)
+- [Google Gemini API](https://ai.google.dev/)
+- [Streamlit Docs](https://docs.streamlit.io/)
