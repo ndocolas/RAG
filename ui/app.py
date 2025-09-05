@@ -1,14 +1,12 @@
 import json
 import requests
 import streamlit as st
-import sseclient
-
 
 # =========================
 # Configurações e Constantes
 # =========================
-st.set_page_config(page_title="RAG PDF (Gemini)", layout="wide")
-API_BASE = st.secrets.get("API_URL", "http://api:8000/v1")
+st.set_page_config(page_title="RAG PDF", layout="wide")
+API_BASE = "http://api:8000/v1"
 
 
 # =========================
@@ -26,48 +24,21 @@ def ensure_session() -> str:
 def upload_files(session_id: str, files: list) -> dict:
     """Envia arquivos para indexação no backend."""
     payload = {"session_id": session_id}
-    # requests quer (name, fileobj, mime); usamos "application/octet-stream" por segurança
     to_send = [("files", (f.name, f.read(), "application/octet-stream")) for f in files]
     resp = requests.post(f"{API_BASE}/documents", data=payload, files=to_send, timeout=120)
     resp.raise_for_status()
     return resp.json()
 
 
-def stream_answer(session_id: str, question: str):
+def ask(session_id: str, user_input: str) -> dict:
     """
-    Faz a pergunta ao endpoint de streaming e gera tokens conforme chegam.
-    Retorna (texto_final, citations_json).
+    Chama o endpoint /ask (não-stream).
+    Retorna o JSON completo (AIResponse).
     """
-    payload = {"session_id": session_id, "question": question}
-    resp = requests.post(f"{API_BASE}/ask/stream", json=payload, stream=True, timeout=120)
+    payload = {"session_id": session_id, "user_input": user_input}
+    resp = requests.post(f"{API_BASE}/ask", json=payload, timeout=120)
     resp.raise_for_status()
-
-    client = sseclient.SSEClient(resp)  # type: ignore
-    full_text = ""
-    citations = None
-
-    for evt in client.events():
-        if evt.event == "citations":
-            citations = json.loads(evt.data) if evt.data else []
-        elif evt.event == "token":
-            full_text += evt.data or ""
-            yield ("token", full_text)  # atualiza a UI a cada pedaço
-        elif evt.event == "done":
-            break
-
-    yield ("done", (full_text, citations))
-
-
-def render_citations(citations: list[dict]):
-    """Renderiza a seção de citações."""
-    if not citations:
-        return
-    with st.expander("Citações"):
-        for c in citations:
-            page = c.get("page", 1)
-            score = c.get("score", 0.0)
-            src = c.get("source_id", "")
-            st.markdown(f"- **p.{page}** — _score {score:.3f}_ — `{src}`")
+    return resp.json()
 
 
 # =========================
@@ -120,21 +91,16 @@ if question:
     with st.chat_message("user"):
         st.write(question)
 
-    # Área de resposta com streaming
+    # Chamada ao backend (não-stream) e renderização da resposta
     with st.chat_message("assistant"):
         placeholder = st.empty()
         try:
-            final_text, final_citations = "", None
-            # Consome o stream e atualiza o placeholder
-            for kind, payload in stream_answer(session_id, question):
-                if kind == "token":
-                    placeholder.markdown(payload)
-                elif kind == "done":
-                    final_text, final_citations = payload
+            result = ask(session_id, question)
+            final_text = result.get("response", "")
+            if not final_text:
+                final_text = "_Sem resposta do modelo._"
 
-            # Congela o texto final e renderiza citações
             placeholder.markdown(final_text)
-            render_citations(final_citations)  # type: ignore
 
             # Salva no histórico
             st.session_state.history.append({"role": "assistant", "content": final_text})

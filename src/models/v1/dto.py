@@ -1,5 +1,5 @@
-from pydantic import BaseModel, Field
-from typing import List, Optional, Dict
+from pydantic import BaseModel
+from typing import List
 
 
 class StartChatResponse(BaseModel):
@@ -17,9 +17,7 @@ class UploadResponse(BaseModel):
 
 class QuestionRequest(BaseModel):
     session_id: str
-    question: str
-    top_k: int = 5
-    mmr_lambda: float = 0.5
+    user_input: str
 
 
 class Citation(BaseModel):
@@ -33,8 +31,3 @@ class AIResponse(BaseModel):
     session_id: str
     user_input: str
     response: str
-    citations: List[Citation] = []
-    metadata: Dict[str, Optional[float]] = Field(
-        default_factory=dict,
-        description="latency_ms, tokens_in, tokens_out, etc."
-    )

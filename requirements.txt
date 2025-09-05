@@ -2,7 +2,7 @@ fastapi==0.116.1
 uvicorn==0.35.0
 pydantic-settings
 google-genai==1.33.0
-qdrant-client==1.15.1
+qdrant-client==1.11.0
 PyMuPDF==1.26.4
 numpy==2.3.2
 sse-starlette
