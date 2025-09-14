@@ -1,0 +1,14 @@
+@BackendEndpoint = {{$dotenv API_BASE_URL}}
+
+
+### Check if service is alive
+GET {{BackendEndpoint}}
+
+### test case
+POST {{BackendEndpoint}}/chat
+Content-Type: application/json
+
+{
+    "session_id": "c35a3f05-9ef9-4868-9fae-cfb7bd5bd65b",
+    "user_input": "Hello, how are you?"
+}

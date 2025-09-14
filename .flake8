@@ -5,7 +5,7 @@ exclude =
     .git,
     __pycache__,
 max-complexity = 10
-max-line-length = 140
+max-line-length = 120
 
 per-file-ignores =
     *.py: F401, E305

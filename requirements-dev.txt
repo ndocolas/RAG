@@ -1,0 +1,11 @@
+black==24.3.0
+bump2version==1.0.1
+coverage==6.4.4
+flake8==5.0.4
+flake8-docstrings==1.6
+flake8-use-fstring==1.4
+pre-commit==2.20.0
+pydocstyle==6.3.0
+setuptools==70.0.0
+unittest-xml-reporting==3.2.0
+wheel==0.38.1

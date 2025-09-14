@@ -1,23 +1,22 @@
+# docker/Dockerfile.api
 FROM python:3.12-slim
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1
 
-# Trabalhamos na raiz do projeto dentro do container
 WORKDIR /app
 
-# (Opcional) utilitários mínimos
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates \
- && rm -rf /var/lib/apt/lists/*
-
-# Instala deps Python via requirements da RAIZ
+# requirements da RAIZ
 COPY requirements.txt /app/requirements.txt
 RUN pip install --upgrade pip && pip install -r /app/requirements.txt
 
-# Copia o código (mantendo o pacote src/)
+# copia todo o código (inclui backend, services, secrets, api_routes)
 COPY src /app/src
 
+# garante imports "src.*"
+ENV PYTHONPATH=/app
+
 EXPOSE 8000
-CMD ["uvicorn","src.main:app","--host","0.0.0.0","--port","8000"]
+# main fica em src/backend/main.py com objeto FastAPI 'app'
+CMD ["uvicorn", "src.backend.main:app", "--host", "0.0.0.0", "--port", "8000"]

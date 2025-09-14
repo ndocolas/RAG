@@ -10,10 +10,19 @@
             "request": "launch",
             "module": "uvicorn",
             "args": [
-                "main:app",
+                "src.backend.main:app",
                 "--reload"
             ],
             "jinja": true
-        }
+        },
+        {
+            "name": "Streamlit: UI",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "streamlit",
+            "args": ["run", "src/ui/app.py"],
+            "env": { "PYTHONPATH": "${workspaceFolder}" }
+        },
+
     ]
 }
