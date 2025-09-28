@@ -1,29 +1,41 @@
-"""Service to handle chat interactions using a LLM."""
-
 import logging
+from langchain.prompts import PromptTemplate
 
 from src.backend.services.chat_service.models.models import ChatOutput
 from src.backend.services.chat_service.llm_builder import LLMBuilder
 from src.backend.services.chat_service.models.models import AIChatOutput
 from src.backend.services.chat_service.system_prompt import PROMPT, PROMPT_VARIABLES
-from langchain.prompts import PromptTemplate
+from src.backend.services.vector_service.vector_service import RetrievalService
 
 
 class ChatService:
-    """Service to handle chat interactions using a LLM."""
+    """Service to handle chat interactions using a Large Language Model (LLM)."""
 
     logger = logging.getLogger(__name__)
 
     def __init__(self):
-        """Initializes the ChatService with a LLM instance."""
+        """
+        Initialize the ChatService with an LLM instance and retrieval service.
+
+        Inputs:
+        None
+
+        Returns:
+        None: Initializes internal components for LLM interaction and document retrieval
+        """
         self.llm = LLMBuilder.build_llm()
+        self.retrieval = RetrievalService()
 
     async def chat(self, session_id: str, user_input: str) -> ChatOutput:
-        """Handles a chat interaction.
+        """
+        Handle a chat request, retrieve context, run the LLM chain, and return the structured response.
 
-        Args:
-            session_id (str): The session ID for the chat.
-            user_input (str): The user's input question.
+        Inputs:
+        session_id: Unique session identifier used to retrieve the correct FAISS index
+        user_input: The text query provided by the user
+
+        Returns:
+        ChatOutput: The final structured chat response containing user input, session id, and the model output
         """
         try:
             self.logger.info(
@@ -32,22 +44,14 @@ class ChatService:
                 user_input,
             )
 
-            llm_with_structured_output = self.llm.with_structured_output(schema=AIChatOutput)
+            context, _docs = self.retrieval.top_context(session_id, user_input, k=1)
+            self.logger.info("\nRetrieved context (%.80s...)", context.replace("\n", " "))
 
-            prompt_template = PromptTemplate(
-                input_variables=PROMPT_VARIABLES,
-                template=PROMPT,
-            )
+            llm_with_structured_output = self.llm.with_structured_output(schema=AIChatOutput)
+            prompt_template = PromptTemplate(input_variables=PROMPT_VARIABLES, template=PROMPT)
             chain = prompt_template | llm_with_structured_output
 
-            # get most related chunk
-            # related_chunk = self.rag.get_chunk(
-            #     session_id=session_id, question=user_input
-            # )
-            # self.logger.info("\nRetrieved c. hunk: %.80s...", related_chunk)
-
-            response = await chain.ainvoke({"user_input": user_input, "chunk": "related_chunk"})
-
+            response = await chain.ainvoke({"user_input": user_input, "chunk": context})
             response_model = AIChatOutput.model_validate(response)
 
             return ChatOutput(
