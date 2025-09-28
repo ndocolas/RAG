@@ -1,5 +1,3 @@
-"""Settings management for the application."""
-
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from dotenv import find_dotenv
 from pydantic import SecretStr
@@ -20,7 +18,7 @@ class Settings(BaseSettings):
     TOP_K: int = 5
 
     LOG_LEVEL: str = "INFO"
-    API_BASE_URL: str = "http://localhost:8000/"
+    API_BASE_URL: str
 
 
 settings = Settings()  # type: ignore
