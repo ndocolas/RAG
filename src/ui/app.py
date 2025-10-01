@@ -47,7 +47,9 @@ def upload_files(session_id: str, files: list) -> dict:
     """Uploads files to the backend for indexing."""
     payload = {"session_id": session_id}
     to_send = [("files", (f.name, f.read(), "application/octet-stream")) for f in files]
-    resp = requests.post(f"{settings.API_BASE_URL}/documents", data=payload, files=to_send, timeout=240)
+    resp = requests.post(
+        f"{settings.API_BASE_URL}/documents", data=payload, files=to_send, timeout=240
+    )
     resp.raise_for_status()
     return resp.json()
 
@@ -56,7 +58,11 @@ def ask(session_id: str, user_input: str) -> dict:
     """Send a question to the backend and get a response."""
     try:
         req = UserRequest(session_id=session_id, user_input=user_input)
-        resp = requests.post(f"{settings.API_BASE_URL}/chat", json=json.loads(req.model_dump_json()), timeout=240)
+        resp = requests.post(
+            f"{settings.API_BASE_URL}/chat",
+            json=json.loads(req.model_dump_json()),
+            timeout=240,
+        )
 
         resp.raise_for_status()
         return resp.json()
@@ -79,7 +85,9 @@ if "last_index_result" not in st.session_state:
 # =========================
 st.title("Chat with your documents")
 
-uploaded = st.file_uploader("Upload PDF/TXT", type=["pdf", "txt"], accept_multiple_files=True)
+uploaded = st.file_uploader(
+    "Upload PDF/TXT", type=["pdf", "txt"], accept_multiple_files=True
+)
 
 
 if uploaded:
@@ -116,9 +124,7 @@ if question:
 
             placeholder.empty()
 
-            response = (
-                f"{response_model.response_model.response}\n\nReference: {response_model.response_model.reference}"
-            )
+            response = f"{response_model.response_model.response}\n\nReference: {response_model.response_model.reference}"
 
             st.write(response)
 

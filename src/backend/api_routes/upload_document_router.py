@@ -19,8 +19,7 @@ async def upload_documents(
     session_id: str = Form(...),
     files: List[UploadFile] = File(...),
 ) -> dict:
-    """
-    Endpoint to receive uploaded files, index them with FAISS, and persist them per session.
+    """Endpoint to receive uploaded files, index them with FAISS, and persist them per session.
 
     Inputs:
     session_id: Unique session identifier to associate with the indexed documents

@@ -14,8 +14,7 @@ chat_service = ChatService()
 
 @chat_router.post("", response_model=ChatResponse)
 async def ask(request: UserRequest) -> ChatResponse:
-    """
-    Endpoint to handle user chat requests within a session.
+    """Endpoint to handle user chat requests within a session.
 
     Inputs:
     request: UserRequest object containing the session_id and user_input
@@ -26,8 +25,7 @@ async def ask(request: UserRequest) -> ChatResponse:
     try:
         logger.info("\nReceived ask request: %s", request)
         response = await chat_service.chat(
-            user_input=request.user_input,
-            session_id=request.session_id
+            user_input=request.user_input, session_id=request.session_id
         )
 
         logger.debug("\nRequest retrieved: %s", response)
@@ -35,7 +33,7 @@ async def ask(request: UserRequest) -> ChatResponse:
         return ChatResponse(
             session_id=response.session_id,
             user_input=response.user_input,
-            response_model=response.response_model
+            response_model=response.response_model,
         )
     except Exception as e:
         logger.error("\nAn error occurred in chat interaction: %s", e)

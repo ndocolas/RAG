@@ -8,8 +8,7 @@ class LLMBuilder:
     """Class to build a Large Language Model (LLM) instance."""
 
     def __init__(self):
-        """
-        Prevent direct instantiation of this class.
+        """Prevent direct instantiation of this class.
 
         Inputs:
         None
@@ -24,8 +23,7 @@ class LLMBuilder:
 
     @staticmethod
     def build_llm() -> ChatGoogleGenerativeAI:
-        """
-        Build and return a configured LLM instance.
+        """Build and return a configured LLM instance.
 
         Inputs:
         None

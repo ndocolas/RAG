@@ -1,3 +1,5 @@
+"""Chat service module to handle interactions with a Large Language Model (LLM) and manage chat sessions."""
+
 import logging
 from langchain.prompts import PromptTemplate
 
@@ -14,8 +16,7 @@ class ChatService:
     logger = logging.getLogger(__name__)
 
     def __init__(self):
-        """
-        Initialize the ChatService with an LLM instance and retrieval service.
+        """Initialize the ChatService with an LLM instance and retrieval service.
 
         Inputs:
         None
@@ -27,8 +28,7 @@ class ChatService:
         self.retrieval = RetrievalService()
 
     async def chat(self, session_id: str, user_input: str) -> ChatOutput:
-        """
-        Handle a chat request, retrieve context, run the LLM chain, and return the structured response.
+        """Handle a chat request, retrieve context, run the LLM chain, and return the structured response.
 
         Inputs:
         session_id: Unique session identifier used to retrieve the correct FAISS index
@@ -45,10 +45,16 @@ class ChatService:
             )
 
             context, _docs = self.retrieval.top_context(session_id, user_input, k=1)
-            self.logger.info("\nRetrieved context (%.80s...)", context.replace("\n", " "))
+            self.logger.info(
+                "\nRetrieved context (%.80s...)", context.replace("\n", " ")
+            )
 
-            llm_with_structured_output = self.llm.with_structured_output(schema=AIChatOutput)
-            prompt_template = PromptTemplate(input_variables=PROMPT_VARIABLES, template=PROMPT)
+            llm_with_structured_output = self.llm.with_structured_output(
+                schema=AIChatOutput
+            )
+            prompt_template = PromptTemplate(
+                input_variables=PROMPT_VARIABLES, template=PROMPT
+            )
             chain = prompt_template | llm_with_structured_output
 
             response = await chain.ainvoke({"user_input": user_input, "chunk": context})
